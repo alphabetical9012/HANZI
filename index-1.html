@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="汉字库" />
+  <meta name="theme-color" content="#f5f0e8" />
+  <title>汉字库</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;700&family=Spectral:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #1a1410;
+      --paper: #f5f0e8;
+      --warm: #c8a96e;
+      --red: #c0392b;
+      --muted: #8a7a68;
+      --card-bg: #faf6ee;
+      --border: #d4c4a8;
+      --nav-h: 64px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body { height: 100%; background: var(--paper); }
+
+    body {
+      font-family: 'Spectral', serif;
+      color: var(--ink);
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #app { display: flex; flex-direction: column; flex: 1; position: relative; z-index: 1; }
+
+    .scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 20px);
+    }
+
+    .view { max-width: 480px; margin: 0 auto; padding: 28px 18px 0; }
+
+    /* BOTTOM NAV */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: calc(var(--nav-h) + var(--safe-bottom));
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      padding-top: 8px;
+      z-index: 100;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 4px;
+      position: relative;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nav-icon { font-size: 20px; color: var(--muted); transition: color 0.15s; }
+    .nav-label { font-family: 'Spectral', serif; font-size: 10px; letter-spacing: 0.5px; color: var(--muted); transition: color 0.15s; }
+
+    .nav-item.active .nav-icon,
+    .nav-item.active .nav-label { color: var(--ink); }
+
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 20%; right: 20%;
+      height: 2px;
+      background: var(--warm);
+      border-radius: 0 0 2px 2px;
+    }
+
+    .nav-badge {
+      position: absolute;
+      top: 4px; right: calc(50% - 20px);
+      background: var(--red);
+      color: white;
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 8px;
+      min-width: 16px;
+      text-align: center;
+    }
+
+    /* HOME */
+    .home-glyph {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 80px;
+      font-weight: 300;
+      color: var(--ink);
+      opacity: 0.1;
+      line-height: 1;
+      letter-spacing: 8px;
+      text-align: center;
+      margin-bottom: 4px;
+      margin-top: 16px;
+    }
+
+    .home-subtitle {
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 28px;
+      text-align: center;
+    }
+
+    .stats-row {
+      display: flex;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .stat { flex: 1; text-align: center; padding: 18px 12px; }
+    .stat + .stat { border-left: 1px solid var(--border); }
+
+    .stat-num {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+
+    /* BUTTONS */
+    .btn-primary {
+      background: var(--ink);
+      color: var(--paper);
+      border: none;
+      padding: 18px 24px;
+      font-family: 'Spectral', serif;
+      font-size: 16px;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      border-radius: 4px;
+      width: 100%;
+      margin-bottom: 10px;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-primary:active { transform: scale(0.98); }
+
+    .btn-secondary {
+      background: none;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 16px 24px;
+      font-family: 'Spectral', serif;
+      font-size: 15px;
+      cursor: pointer;
+      border-radius: 4px;
+      width: 100%;
+      transition: all 0.2s;
+    }
+
+    /* VIEW TITLE */
+    .view-title {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 20px;
+      font-weight: 400;
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+    }
+
+    /* ADD */
+    .input-row { display: flex; gap: 10px; margin-bottom: 16px; }
+
+    .hanzi-input {
+      flex: 1;
+      font-family: 'Noto Serif SC', serif;
+      font-size: 24px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      border-radius: 4px;
+      color: var(--ink);
+      outline: none;
+      letter-spacing: 4px;
+      min-width: 0;
+    }
+
+    .hanzi-input:focus { border-color: var(--warm); }
+    .hanzi-input::placeholder { opacity: 0.3; font-size: 18px; }
+
+    .btn-lookup {
+      background: var(--warm);
+      color: var(--ink);
+      border: none;
+      padding: 14px 20px;
+      font-family: 'Spectral', serif;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-lookup:disabled { opacity: 0.5; }
+
+    .loading { text-align: center; padding: 28px; color: var(--muted); font-style: italic; }
+
+    .error-msg {
+      color: var(--red);
+      font-size: 14px;
+      padding: 12px 16px;
+      border: 1px solid rgba(192,57,43,0.3);
+      border-radius: 4px;
+      background: rgba(192,57,43,0.05);
+      margin-bottom: 12px;
+    }
+
+    .result-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 22px;
+      animation: fadeUp 0.3s ease;
+    }
+
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    .result-hanzi { font-family: 'Noto Serif SC', serif; font-size: 48px; font-weight: 300; margin-bottom: 4px; }
+    .result-pinyin { font-size: 18px; color: var(--red); font-style: italic; margin-bottom: 4px; }
+    .result-translation { font-size: 17px; font-weight: 300; margin-bottom: 16px; }
+
+    .examples-label { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+
+    .example { padding: 10px 0; border-top: 1px solid var(--border); }
+    .example-zh { font-family: 'Noto Serif SC', serif; font-size: 15px; margin-bottom: 3px; }
+    .example-ru { font-size: 13px; color: var(--muted); font-style: italic; }
+
+    .saved-notice { color: #27ae60; font-size: 14px; text-align: center; padding: 12px; letter-spacing: 1px; }
+
+    /* REVIEW */
+    .review-progress { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); text-align: center; margin-bottom: 16px; }
+
+    .progress-bar { height: 2px; background: var(--border); border-radius: 2px; margin-bottom: 24px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--warm); border-radius: 2px; transition: width 0.3s ease; }
+
+    .flashcard {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-height: 250px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 20px;
+      cursor: pointer;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .flashcard::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(200,169,110,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .flashcard:active { transform: scale(0.99); }
+
+    .card-hanzi { font-family: 'Noto Serif SC', serif; font-size: 64px; font-weight: 300; line-height: 1; margin-bottom: 8px; }
+    .card-hint { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-top: 16px; }
+    .card-back { width: 100%; animation: fadeUp 0.2s ease; }
+    .card-pinyin { font-size: 20px; color: var(--red); font-style: italic; margin-bottom: 6px; }
+    .card-translation { font-size: 19px; font-weight: 300; margin-bottom: 14px; }
+    .card-example { text-align: left; background: rgba(200,169,110,0.08); border-radius: 4px; padding: 12px 14px; }
+
+    .answer-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+
+    .btn-forgot {
+      padding: 18px; background: none; border: 1px solid var(--red); color: var(--red);
+      font-family: 'Spectral', serif; font-size: 15px; cursor: pointer; border-radius: 4px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-knew {
+      padding: 18px; background: none; border: 1px solid #27ae60; color: #27ae60;
+      font-family: 'Spectral', serif; font-size: 15px; cursor: pointer; border-radius: 4px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-forgot:active { background: rgba(192,57,43,0.08); }
+    .btn-knew:active { background: rgba(39,174,96,0.08); }
+
+    .done-screen { text-align: center; padding: 60px 24px; }
+    .done-hanzi { font-family: 'Noto Serif SC', serif; font-size: 72px; font-weight: 300; color: var(--warm); margin-bottom: 12px; line-height: 1; }
+    .done-text { font-size: 17px; color: var(--muted); margin-bottom: 28px; font-style: italic; }
+
+    /* BROWSE */
+    .browse-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px; }
+
+    .browse-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 4px; padding: 16px 14px 36px; position: relative; }
+    .browse-hanzi { font-family: 'Noto Serif SC', serif; font-size: 28px; font-weight: 300; margin-bottom: 4px; line-height: 1.1; }
+    .browse-pinyin { font-size: 12px; color: var(--red); font-style: italic; margin-bottom: 3px; }
+    .browse-translation { font-size: 12px; color: var(--muted); }
+
+    .level-dot { position: absolute; top: 14px; right: 14px; width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+    .level-dot.l1 { background: #e74c3c; }
+    .level-dot.l2 { background: #e67e22; }
+    .level-dot.l3 { background: #f1c40f; }
+    .level-dot.l4 { background: #2ecc71; }
+    .level-dot.l5 { background: #27ae60; }
+
+    .delete-btn { position: absolute; bottom: 10px; right: 10px; background: none; border: none; color: var(--border); cursor: pointer; font-size: 18px; padding: 4px; line-height: 1; }
+    .delete-btn:active { color: var(--red); }
+
+    .empty-state { text-align: center; padding: 60px 24px; color: var(--muted); font-style: italic; }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="scroll-area" id="scroll-area">
+
+    <!-- HOME -->
+    <div class="view hidden" id="view-home">
+      <div class="home-glyph">字</div>
+      <div class="home-subtitle">твоя база китайских слов</div>
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-num" id="stat-total">0</div>
+          <div class="stat-label">слов</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" id="stat-due" style="color:var(--red)">0</div>
+          <div class="stat-label">сегодня</div>
+        </div>
+      </div>
+      <button class="btn-primary" id="btn-start-review">повторять</button>
+      <button class="btn-secondary" onclick="showView('add')">+ добавить слово</button>
+    </div>
+
+    <!-- ADD -->
+    <div class="view hidden" id="view-add">
+      <div class="view-title">добавить слово</div>
+      <div class="input-row">
+        <input class="hanzi-input" id="hanzi-input" placeholder="你好" autocomplete="off" />
+        <button class="btn-lookup" id="btn-lookup" onclick="handleLookup()">найти</button>
+      </div>
+      <div id="add-loading" class="loading hidden">ИИ ищет слово…</div>
+      <div id="add-error" class="error-msg hidden"></div>
+      <div id="add-saved" class="saved-notice hidden">✓ сохранено — добавь следующее</div>
+      <div id="result-card" class="result-card hidden">
+        <div class="result-hanzi" id="res-hanzi"></div>
+        <div class="result-pinyin" id="res-pinyin"></div>
+        <div class="result-translation" id="res-translation"></div>
+        <div class="examples-label">примеры</div>
+        <div id="res-examples"></div>
+        <div style="margin-top:16px">
+          <button class="btn-primary" id="btn-save" onclick="saveCard()">сохранить в базу</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- REVIEW -->
+    <div class="view hidden" id="view-review">
+      <div id="done-screen" class="done-screen hidden">
+        <div class="done-hanzi">好</div>
+        <div class="done-text">все слова на сегодня повторены</div>
+        <button class="btn-primary" onclick="showView('home')">на главную</button>
+      </div>
+      <div id="review-main">
+        <div class="review-progress" id="review-progress">1 / 1</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+        <div class="flashcard" id="flashcard" onclick="handleFlip()">
+          <div class="card-hanzi" id="card-hanzi"></div>
+          <div class="card-hint" id="card-hint">нажми чтобы открыть</div>
+          <div class="card-back hidden" id="card-back">
+            <div class="card-pinyin" id="card-pinyin"></div>
+            <div class="card-translation" id="card-translation"></div>
+            <div class="card-example" id="card-example"></div>
+          </div>
+        </div>
+        <div class="answer-btns hidden" id="answer-btns">
+          <button class="btn-forgot" onclick="handleAnswer(false)">не знала</button>
+          <button class="btn-knew" onclick="handleAnswer(true)">знала ✓</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BROWSE -->
+    <div class="view hidden" id="view-browse">
+      <div class="view-title" id="browse-title">все слова (0)</div>
+      <div id="browse-empty" class="empty-state hidden">база пустая — добавь первое слово</div>
+      <div class="browse-grid" id="browse-grid"></div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-home" onclick="showView('home')">
+      <span class="nav-icon">⌂</span>
+      <span class="nav-label">главная</span>
+    </button>
+    <button class="nav-item" id="nav-add" onclick="showView('add')">
+      <span class="nav-icon">＋</span>
+      <span class="nav-label">добавить</span>
+    </button>
+    <button class="nav-item" id="nav-review" onclick="startReview()">
+      <span class="nav-badge hidden" id="review-badge">0</span>
+      <span class="nav-icon">◈</span>
+      <span class="nav-label">повторять</span>
+    </button>
+    <button class="nav-item" id="nav-browse" onclick="showView('browse')">
+      <span class="nav-icon">≡</span>
+      <span class="nav-label">все слова</span>
+    </button>
+  </nav>
+</div>
+
+<script>
+const STORAGE_KEY = 'hanzi_cards_v1';
+const INTERVALS = [0, 1, 3, 7, 14, 30];
+let cards = [];
+let reviewQueue = [];
+let reviewIndex = 0;
+let currentResult = null;
+let currentHanzi = '';
+
+// ── STORAGE ──
+function loadCards() {
+  try { cards = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { cards = []; }
+}
+
+function saveCards() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cards)); } catch {}
+}
+
+// ── SRS ──
+function getDueCards() {
+  const now = Date.now();
+  return cards.filter(c => !c.nextReview || c.nextReview <= now);
+}
+
+function updateSRS(card, knew) {
+  const level = knew ? Math.min((card.level || 0) + 1, INTERVALS.length - 1) : 0;
+  return { ...card, level, nextReview: Date.now() + INTERVALS[level] * 86400000, lastReviewed: Date.now() };
+}
+
+// ── NAVIGATION ──
+const VIEWS = ['home', 'add', 'review', 'browse'];
+
+function showView(name) {
+  VIEWS.forEach(v => {
+    document.getElementById('view-' + v).classList.toggle('hidden', v !== name);
+    document.getElementById('nav-' + v).classList.toggle('active', v !== name ? false : true);
+  });
+  document.getElementById('scroll-area').scrollTop = 0;
+  if (name === 'home') updateHome();
+  if (name === 'browse') renderBrowse();
+}
+
+// ── HOME ──
+function updateHome() {
+  const due = getDueCards();
+  document.getElementById('stat-total').textContent = cards.length;
+  document.getElementById('stat-due').textContent = due.length;
+  document.getElementById('stat-due').style.color = due.length > 0 ? 'var(--red)' : 'var(--ink)';
+  const btn = document.getElementById('btn-start-review');
+  btn.textContent = due.length > 0 ? `повторять · ${due.length}` : 'всё повторено ✓';
+  btn.disabled = due.length === 0;
+  const badge = document.getElementById('review-badge');
+  if (due.length > 0) { badge.textContent = due.length; badge.classList.remove('hidden'); }
+  else { badge.classList.add('hidden'); }
+}
+
+document.getElementById('btn-start-review').onclick = startReview;
+
+// ── ADD ──
+document.getElementById('hanzi-input').addEventListener('keydown', e => { if (e.key === 'Enter') handleLookup(); });
+
+async function handleLookup() {
+  const hanzi = document.getElementById('hanzi-input').value.trim();
+  if (!hanzi) return;
+  currentHanzi = hanzi;
+
+  document.getElementById('add-loading').classList.remove('hidden');
+  document.getElementById('add-error').classList.add('hidden');
+  document.getElementById('add-saved').classList.add('hidden');
+  document.getElementById('result-card').classList.add('hidden');
+  document.getElementById('btn-lookup').disabled = true;
+
+  try {
+    const prompt = `You are a Chinese language expert. For the word "${hanzi}", provide:
+1. Pinyin with tone marks (not numbers)
+2. Russian translation (primary meaning, 1-3 words)
+3. Two short example sentences in Chinese with Russian translation
+
+Respond ONLY with valid JSON, no markdown, no explanation:
+{"pinyin":"...","translation":"...","examples":[{"zh":"...","ru":"..."},{"zh":"...","ru":"..."}]}`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || '';
+    currentResult = JSON.parse(text.replace(/```json|```/g, '').trim());
+
+    document.getElementById('res-hanzi').textContent = hanzi;
+    document.getElementById('res-pinyin').textContent = currentResult.pinyin;
+    document.getElementById('res-translation').textContent = currentResult.translation;
+    document.getElementById('res-examples').innerHTML = currentResult.examples.map(ex =>
+      `<div class="example"><div class="example-zh">${ex.zh}</div><div class="example-ru">${ex.ru}</div></div>`
+    ).join('');
+    document.getElementById('btn-save').classList.remove('hidden');
+    document.getElementById('result-card').classList.remove('hidden');
+  } catch(e) {
+    document.getElementById('add-error').textContent = 'Не удалось найти слово. Попробуй ещё раз.';
+    document.getElementById('add-error').classList.remove('hidden');
+  }
+
+  document.getElementById('add-loading').classList.add('hidden');
+  document.getElementById('btn-lookup').disabled = false;
+}
+
+function saveCard() {
+  if (!currentResult) return;
+  cards.push({
+    id: Date.now(),
+    hanzi: currentHanzi,
+    pinyin: currentResult.pinyin,
+    translation: currentResult.translation,
+    examples: currentResult.examples,
+    level: 0,
+    nextReview: Date.now(),
+    added: Date.now()
+  });
+  saveCards();
+  currentResult = null;
+  document.getElementById('hanzi-input').value = '';
+  document.getElementById('result-card').classList.add('hidden');
+  document.getElementById('add-saved').classList.remove('hidden');
+  updateHome();
+}
+
+// ── REVIEW ──
+function startReview() {
+  const due = getDueCards();
+  if (due.length === 0) { showView('home'); return; }
+  reviewQueue = [...due].sort(() => Math.random() - 0.5);
+  reviewIndex = 0;
+  showView('review');
+  renderCard();
+}
+
+function renderCard() {
+  const done = reviewIndex >= reviewQueue.length;
+  document.getElementById('done-screen').classList.toggle('hidden', !done);
+  document.getElementById('review-main').classList.toggle('hidden', done);
+  if (done) return;
+
+  const card = reviewQueue[reviewIndex];
+  document.getElementById('review-progress').textContent = `${reviewIndex + 1} / ${reviewQueue.length}`;
+  document.getElementById('progress-fill').style.width = `${(reviewIndex / reviewQueue.length) * 100}%`;
+  document.getElementById('card-hanzi').textContent = card.hanzi;
+  document.getElementById('card-hint').classList.remove('hidden');
+  document.getElementById('card-back').classList.add('hidden');
+  document.getElementById('answer-btns').classList.add('hidden');
+  document.getElementById('flashcard').style.cursor = 'pointer';
+}
+
+function handleFlip() {
+  if (!document.getElementById('card-back').classList.contains('hidden')) return;
+  const card = reviewQueue[reviewIndex];
+  document.getElementById('card-pinyin').textContent = card.pinyin;
+  document.getElementById('card-translation').textContent = card.translation;
+  if (card.examples?.[0]) {
+    document.getElementById('card-example').innerHTML =
+      `<div class="example-zh">${card.examples[0].zh}</div><div class="example-ru" style="margin-top:4px">${card.examples[0].ru}</div>`;
+  }
+  document.getElementById('card-hint').classList.add('hidden');
+  document.getElementById('card-back').classList.remove('hidden');
+  document.getElementById('answer-btns').classList.remove('hidden');
+  document.getElementById('flashcard').style.cursor = 'default';
+}
+
+function handleAnswer(knew) {
+  const card = reviewQueue[reviewIndex];
+  const updated = updateSRS(card, knew);
+  cards = cards.map(c => c.id === card.id ? updated : c);
+  saveCards();
+  reviewIndex++;
+  renderCard();
+  updateHome();
+}
+
+// ── BROWSE ──
+function renderBrowse() {
+  document.getElementById('browse-title').textContent = `все слова (${cards.length})`;
+  const empty = document.getElementById('browse-empty');
+  const grid = document.getElementById('browse-grid');
+  if (cards.length === 0) { empty.classList.remove('hidden'); grid.innerHTML = ''; return; }
+  empty.classList.add('hidden');
+  grid.innerHTML = [...cards].reverse().map(card => `
+    <div class="browse-card">
+      <div class="level-dot l${card.level || 0}"></div>
+      <div class="browse-hanzi">${card.hanzi}</div>
+      <div class="browse-pinyin">${card.pinyin}</div>
+      <div class="browse-translation">${card.translation}</div>
+      <button class="delete-btn" onclick="deleteCard(${card.id})">×</button>
+    </div>
+  `).join('');
+}
+
+function deleteCard(id) {
+  cards = cards.filter(c => c.id !== id);
+  saveCards();
+  renderBrowse();
+  updateHome();
+}
+
+// ── PWA ──
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; });
+
+// ── INIT ──
+loadCards();
+showView('home');
+</script>
+</body>
+</html>
