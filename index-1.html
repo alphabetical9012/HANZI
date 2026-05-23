@@ -533,7 +533,7 @@ async function handleLookup() {
   document.getElementById('add-saved').classList.add('hidden');
   document.getElementById('result-card').classList.add('hidden');
   document.getElementById('btn-lookup').disabled = true;
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch('/api/search', {
   try {
     const prompt = `You are a Chinese language expert. For the word "${hanzi}", provide:
 1. Pinyin with tone marks (not numbers)
